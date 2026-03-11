@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../../data/repositories/songs/song_repository.dart';
 import '../../../states/player_state.dart';
 import '../../../../model/songs/song.dart';
+enum SongsStatus { loading, success, error }
 
 class LibraryViewModel extends ChangeNotifier {
   final SongRepository songRepository;
   final PlayerState playerState;
-  List<Song>? _songs;
+  SongsStatus status = SongsStatus.loading;
+  List<Song> songs = [];
+  String? errorMessage;
 
   LibraryViewModel({required this.songRepository, required this.playerState}) {
     playerState.addListener(notifyListeners);
@@ -15,7 +18,7 @@ class LibraryViewModel extends ChangeNotifier {
     _init();
   }
 
-  List<Song> get songs => _songs == null ? [] : _songs!;
+  // List<Song> get songs => _songs == null ? [] : _songs!;
 
   @override
   void dispose() {
@@ -25,7 +28,17 @@ class LibraryViewModel extends ChangeNotifier {
 
   void _init() async {
     // 1 - Fetch songs
-    _songs = await songRepository.fetchSongs();
+    status = SongsStatus.loading;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      songs = await songRepository.fetchSongs();
+      status = SongsStatus.success;
+    } catch (e) {
+      errorMessage = e.toString().replaceFirst('Exception: ', '');
+      status = SongsStatus.error;
+    }
 
     // 2 - notify listeners
     notifyListeners();
